@@ -1,0 +1,29 @@
+name: native_media_size
+description: >
+  Query file sizes for photo/video assets directly from the OS media database
+  (MediaStore on Android, PHAssetResource on iOS) without copying files to the
+  app sandbox. Returns exact byte counts with near-zero latency.
+version: 0.1.0
+homepage: https://github.com/faizahmaddae/native-media-size
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.32.0"
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.faizdae.nativemediasize
+        pluginClass: NativeMediaSizePlugin
+      ios:
+        pluginClass: NativeMediaSizePlugin
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
