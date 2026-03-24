@@ -36,7 +36,21 @@ public class NativeMediaSizePlugin: NSObject, FlutterPlugin {
         }
     }
 
+    // ─── IMPORTANT ────────────────────────────────────────────────
+    // `value(forKey: "fileSize")` is NOT part of Apple's public API for
+    // PHAssetResource. It works reliably as of iOS 18, but Apple DTS has
+    // stated it may stop working in a future version.
+    //
+    // If Apple removes this key, the methods below will return nil/empty
+    // rather than crash — callers should handle nil gracefully.
+    //
+    // The official alternative (PHAssetResourceManager.requestData) requires
+    // reading the full file data, which defeats the purpose of a fast
+    // metadata-only query.
+    // ──────────────────────────────────────────────────────────────
+
     /// Query a single asset's file size from PHAssetResource metadata.
+    /// Returns nil if the asset is not found or the fileSize key is unavailable.
     private func querySize(assetId: String) -> NSNumber? {
         let fetchResult = PHAsset.fetchAssets(
             withLocalIdentifiers: [assetId],
@@ -65,8 +79,9 @@ public class NativeMediaSizePlugin: NSObject, FlutterPlugin {
         return result
     }
 
-    /// Extract file size from PHAssetResource metadata.
+    /// Extract file size from PHAssetResource metadata (undocumented key).
     /// Returns the total size of all resources (image + video for Live Photos).
+    /// May return nil if Apple removes the "fileSize" key in a future iOS version.
     private func fileSizeForAsset(_ asset: PHAsset) -> NSNumber? {
         let resources = PHAssetResource.assetResources(for: asset)
         var totalSize: Int64 = 0

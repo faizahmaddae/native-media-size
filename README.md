@@ -20,7 +20,31 @@ This is **extremely slow** for bulk operations (scanning hundreds/thousands of a
 - **Android**: `MediaStore.MediaColumns.SIZE` — a SQLite column, instant lookup
 - **iOS**: `PHAssetResource.value(forKey: "fileSize")` — Photos framework metadata
 
-Returns the **exact same byte count** as `file.length()`, but with near-zero latency and no file I/O.
+Returns byte counts with near-zero latency and no file I/O.
+
+## Platform differences
+
+| | Android | iOS |
+|---|---|---|
+| **Source** | `MediaStore.MediaColumns.SIZE` | `PHAssetResource.value(forKey: "fileSize")` |
+| **API status** | Official, stable | Undocumented key — works as of iOS 18 |
+| **Accuracy** | Exact | Accurate in practice, not guaranteed by Apple |
+| **Risk** | None | Apple may remove the key in a future iOS version |
+| **Failure mode** | N/A | Returns `null` — callers should handle gracefully |
+
+Use `NativeMediaSize.isExact` at runtime to check which tier applies:
+
+```dart
+if (NativeMediaSize.isExact) {
+  // Android — sizes are guaranteed exact
+} else {
+  // iOS — sizes are best-effort, handle null gracefully
+}
+```
+
+**Why not use an official iOS API?**
+
+Apple's `PHAssetResourceManager.requestData` is the only official way to determine file size, but it requires reading the full file data — which defeats the purpose of a fast metadata query. The undocumented key is a deliberate trade-off: near-instant performance vs. long-term API stability.
 
 ## Usage
 
@@ -29,12 +53,15 @@ import 'package:native_media_size/native_media_size.dart';
 
 // Single asset
 final size = await NativeMediaSize.getFileSize(asset.id);
-print('$size bytes');
+if (size != null) {
+  print('$size bytes');
+}
 
 // Batch query (recommended for bulk operations)
 final ids = assets.map((a) => a.id).toList();
 final sizes = await NativeMediaSize.getFileSizes(ids);
 // sizes: {'asset_id_1': 4521039, 'asset_id_2': 2103948, ...}
+// Assets whose sizes could not be determined are omitted.
 ```
 
 ## Performance comparison
